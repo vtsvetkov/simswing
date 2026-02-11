@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/src/lib/supabase-server'
 import { LogoutButton } from '@/app/dashboard/logout-button'
+import { VenueInfo } from './venue-info'
+import { BayManagement } from './bay-management'
+import { OperatingHours } from './operating-hours'
 
 export default async function VenueDetailPage({
   params,
@@ -21,7 +24,9 @@ export default async function VenueDetailPage({
 
   const { data: venue } = await supabase
     .from('venues')
-    .select('id, name')
+    .select(
+      'id, name, address, city, state, zip, phone, website, sim_technology, timezone, image_url'
+    )
     .eq('id', id)
     .eq('owner_id', user.id)
     .single()
@@ -29,6 +34,18 @@ export default async function VenueDetailPage({
   if (!venue) {
     redirect('/dashboard')
   }
+
+  const { data: bays } = await supabase
+    .from('bays')
+    .select('id, name, bay_number, status, image_url')
+    .eq('venue_id', venue.id)
+    .order('bay_number', { ascending: true })
+
+  const { data: rules } = await supabase
+    .from('availability_rules')
+    .select('id, day_of_week, start_time, end_time, slot_duration_minutes, price_cents')
+    .eq('venue_id', venue.id)
+    .order('day_of_week', { ascending: true })
 
   return (
     <div className="min-h-screen bg-[#1A2E1A]">
@@ -52,13 +69,20 @@ export default async function VenueDetailPage({
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-white/95 rounded-2xl shadow-xl p-8">
-          <h1 className="text-2xl font-bold text-[#1A2E1A] mb-2">
-            {venue.name}
-          </h1>
-          <p className="text-gray-600">Venue detail page — coming soon.</p>
+      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+        <div>
+          <Link
+            href="/dashboard"
+            className="text-sm text-white/70 hover:text-white transition-colors"
+          >
+            &larr; Back to Dashboard
+          </Link>
+          <h1 className="text-2xl font-bold text-white mt-2">{venue.name}</h1>
         </div>
+
+        <VenueInfo venue={venue} />
+        <BayManagement venueId={venue.id} bays={bays ?? []} />
+        <OperatingHours venueId={venue.id} rules={rules ?? []} />
       </main>
     </div>
   )
