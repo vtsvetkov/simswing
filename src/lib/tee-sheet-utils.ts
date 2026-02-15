@@ -79,18 +79,44 @@ export function formatTime12h(time: string): string {
 }
 
 /**
+ * Extract date/time components for a given Date in a specific timezone,
+ * using formatToParts to avoid local-timezone ambiguity.
+ */
+function getPartsInTimezone(date: Date, timezone: string) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(date)
+
+  const get = (type: string) =>
+    parseInt(parts.find((p) => p.type === type)!.value)
+  return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour'), minute: get('minute') }
+}
+
+/**
  * Convert a local date + time + timezone into a UTC ISO string for DB storage.
+ * Works correctly regardless of the browser/server's local timezone.
  */
 export function localToUTC(dateStr: string, timeStr: string, timezone: string): string {
-  // Build a reference date to compute the UTC offset for this timezone
-  const naive = new Date(`${dateStr}T${timeStr}:00`)
-  const utcStr = naive.toLocaleString('en-US', { timeZone: 'UTC' })
-  const localStr = naive.toLocaleString('en-US', { timeZone: timezone })
-  const utcDate = new Date(utcStr)
-  const localDate = new Date(localStr)
-  const offsetMs = utcDate.getTime() - localDate.getTime()
-  const actualUTC = new Date(naive.getTime() + offsetMs)
-  return actualUTC.toISOString()
+  // Start with the target time interpreted as UTC
+  const asUTC = new Date(`${dateStr}T${timeStr}:00Z`)
+
+  // Find what that UTC instant looks like in both UTC and the target timezone
+  const utcParts = getPartsInTimezone(asUTC, 'UTC')
+  const tzParts = getPartsInTimezone(asUTC, timezone)
+
+  // Compare using Date.UTC to get timezone-neutral millisecond values
+  const utcMs = Date.UTC(utcParts.year, utcParts.month - 1, utcParts.day, utcParts.hour, utcParts.minute)
+  const tzMs = Date.UTC(tzParts.year, tzParts.month - 1, tzParts.day, tzParts.hour, tzParts.minute)
+  const offsetMs = utcMs - tzMs
+
+  // Shift by the offset: e.g. 9 AM Denver + 7h offset = 4 PM UTC
+  return new Date(asUTC.getTime() + offsetMs).toISOString()
 }
 
 /**
