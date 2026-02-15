@@ -42,13 +42,19 @@ simswing/
           venue-info.tsx          # Venue info + image upload (client)
           bay-management.tsx      # Bay CRUD + image upload (client)
           operating-hours.tsx     # Operating hours & pricing grid (client)
+          tee-sheet/
+            page.tsx              # Tee sheet (server, fetches bays+rules+bookings)
+            tee-sheet-grid.tsx    # Bays × time slots grid + booking modal (client)
   src/lib/
     supabase.ts                   # Browser Supabase client (createBrowserClient)
     supabase-server.ts            # Server Supabase client (createServerClient + cookies)
+    types.ts                      # Shared TypeScript interfaces (Bay, Booking, TimeSlot, etc.)
+    tee-sheet-utils.ts            # Slot generation, date math, timezone conversion
   supabase/migrations/
     001_initial_schema.sql        # venues, bays, availability_rules, bookings + RLS enable
     002_rls_policies.sql          # RLS policies for all 4 tables
     003_add_images.sql            # image_url columns + venue-images storage bucket
+    004_bookings_operator_policies.sql  # Bookings INSERT/UPDATE policies for venue owners
   middleware.ts                   # Auth: refreshes Supabase session on every request
   package.json
   tsconfig.json                   # strict: true, paths: @/* -> ./*
@@ -77,18 +83,19 @@ Follow these conventions in all code you write:
 - Venue detail page with three sections: venue info with image upload, bay management with images, operating hours and pricing
 - Database tables with RLS: venues, bays, availability_rules, bookings
 - Configured for Vercel deployment (via Vercel dashboard, no config in repo)
+- Tee sheet view: bays × time slots daily grid with date navigation, operator click-to-book with modal, multi-slot booking display, closed day handling
+- RLS policies for operator booking INSERT/UPDATE (migration 004)
 
 ### Not Yet Built (in priority order)
-1. Tee sheet view (bays × time slots calendar grid)
-2. Customer-facing booking page (public URL per venue)
-3. Stripe Connect payments
-4. Dynamic pricing engine (base rate + stackable modifiers)
-5. AI pricing suggestions (Supabase Edge Function → Anthropic API)
-6. AI suggestions dashboard (accept/dismiss UI)
-7. AI setup wizard
-8. Demo mode with synthetic data
-9. Email notifications and confirmations
-10. Consumer-facing venue search
+1. Customer-facing booking page (public URL per venue)
+2. Stripe Connect payments
+3. Dynamic pricing engine (base rate + stackable modifiers)
+4. AI pricing suggestions (Supabase Edge Function → Anthropic API)
+5. AI suggestions dashboard (accept/dismiss UI)
+6. AI setup wizard
+7. Demo mode with synthetic data
+8. Email notifications and confirmations
+9. Consumer-facing venue search
 
 ## Pricing Architecture
 
@@ -124,7 +131,7 @@ This ensures new code fits cleanly into what exists.
 ## Build Plan Reference
 
 ### Phase 1: Core Booking (next)
-- Tee sheet view — bays × time slots grid, available/booked display, operator click-to-book
+- ~~Tee sheet view~~ ✓ (done)
 - Customer booking page — public URL, select bay/date/time, confirm
 - Stripe Connect — venue connects account, customer pays, automated payouts
 - Notifications — email confirmations, cancellations, basic dashboard
