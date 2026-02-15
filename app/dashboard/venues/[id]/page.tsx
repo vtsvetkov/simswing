@@ -78,6 +78,12 @@ export default async function VenueDetailPage({
             &larr; Back to Dashboard
           </Link>
           <h1 className="text-2xl font-bold text-white mt-2">{venue.name}</h1>
+          <Link
+            href={`/dashboard/venues/${venue.id}/tee-sheet`}
+            className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-colors text-sm"
+          >
+            View Tee Sheet
+          </Link>
         </div>
 
         <VenueInfo venue={venue} />
